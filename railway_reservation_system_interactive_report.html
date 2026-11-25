@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Railway Reservation System (RRS) — Architecture & Database Report</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Inter & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Mermaid.js for standard ER Diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <!-- PptxGenJS for 1-Click PowerPoint (.pptx) Export -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Clean Card & Slide Styles */
+    .slide-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+    }
+
+    /* Print & Slide Deck Presentation */
+    @media print {
+      body {
+        background: #ffffff !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .slide-card {
+        border: none !important;
+        page-break-after: always !important;
+        min-height: 95vh !important;
+        margin-bottom: 2rem !important;
+      }
+      main {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+    }
+
+    /* Mermaid Clean Styling */
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-900 flex flex-col">
+
+  <!-- TOP HEADER BAR -->
+  <header class="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 py-3.5 no-print">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      
+      <div>
+        <div class="flex items-center space-x-2.5">
+          <span class="text-base font-bold text-slate-900 tracking-tight">Railway Reservation System (RRS)</span>
+          <span class="bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5 rounded border border-blue-200">DBMS Report</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">Relational Architecture, Segment Bitmasks, Concurrency & 20-Query Suite</p>
+      </div>
+
+      <!-- PPT & PRINT ACTIONS -->
+      <div class="flex items-center space-x-2">
+        <button onclick="exportToPPTX()" id="exportPptBtn" class="px-3.5 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Export to PPT (.pptx)</span>
+        </button>
+
+        <button onclick="window.print()" class="px-3.5 py-1.5 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium transition flex items-center space-x-1.5">
+          <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+          </svg>
+          <span>Print / PDF</span>
+        </button>
+
+        <a href="./railway_reservation_system_er_report.md" download class="px-3.5 py-1.5 rounded-md bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium transition">
+          Markdown
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- QUICK NAVIGATION BAR -->
+  <nav class="bg-white border-b border-slate-200 px-6 py-2 no-print overflow-x-auto text-xs font-medium text-slate-600">
+    <div class="max-w-7xl mx-auto flex items-center space-x-4 whitespace-nowrap">
+      <a href="#slide-overview" class="hover:text-blue-600 transition">1. Overview</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-dilemma" class="hover:text-blue-600 transition">2. Segment Dilemma</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-topology" class="hover:text-blue-600 transition">3. Architecture</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-er" class="hover:text-blue-600 transition">4. Mermaid ER Diagram</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-schema" class="hover:text-blue-600 transition">5. Schema Dictionary</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-normalization" class="hover:text-blue-600 transition">6. Normalization</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-concurrency" class="hover:text-blue-600 transition">7. Concurrency</a>
+      <span class="text-slate-300">/</span>
+      <a href="#slide-questions" class="text-blue-600 font-semibold hover:underline">8. 20 SQL Questions</a>
+    </div>
+  </nav>
+
+  <!-- MAIN DOCUMENT & SLIDES WRAPPER -->
+  <main class="max-w-6xl w-full mx-auto px-4 py-8 space-y-10">
+
+    <!-- SLIDE 1: OVERVIEW & SCALE -->
+    <section id="slide-overview" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 01 • Executive Summary</span>
+        <h1 class="text-2xl font-bold text-slate-900 mt-1">Railway Reservation System (RRS)</h1>
+        <p class="text-xs text-slate-500 mt-1">High-Throughput Relational Architecture for Nationwide Multi-Stop Rail Networks</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div class="space-y-3 text-xs leading-relaxed text-slate-700">
+          <p>
+            The <strong>Railway Reservation System (RRS)</strong> is an enterprise OLTP and analytics environment engineered for high-concurrency booking spikes, intermediate segment inventory reuse, and sub-150ms query response times.
+          </p>
+          <p>
+            It eliminates the intermediate segment dilemma through a <strong>Bitmask Segment Engine</strong>, enforces ACID consistency through <strong>two-phase distributed locking</strong>, and removes all anomalies across <strong>3NF and BCNF normalization</strong>.
+          </p>
+          <div class="bg-slate-50 p-3 rounded border border-slate-200">
+            <h4 class="font-semibold text-slate-900 mb-1">Key Architectural Pillars:</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-600">
+              <li>Bitwise segment reservation instead of whole-route seat blocking</li>
+              <li>Pessimistic row locking on target station legs during Tatkal rushes</li>
+              <li>Monthly range partitioning on <code class="text-slate-800">journey_date</code> for rapid partition pruning</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- METRICS TILES -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-4 rounded border border-slate-200 bg-slate-50 text-center">
+            <div class="text-xl font-bold text-slate-900">2.5M+</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Daily Bookings</div>
+          </div>
+          <div class="p-4 rounded border border-slate-200 bg-slate-50 text-center">
+            <div class="text-xl font-bold text-slate-900">350,000</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Tatkal Concurrency</div>
+          </div>
+          <div class="p-4 rounded border border-slate-200 bg-slate-50 text-center">
+            <div class="text-xl font-bold text-slate-900">&lt; 150ms</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">P99 Query Latency</div>
+          </div>
+          <div class="p-4 rounded border border-slate-200 bg-slate-50 text-center">
+            <div class="text-xl font-bold text-slate-900">12,000+</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Operational Trains</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: THE INTERMEDIATE SEGMENT DILEMMA -->
+    <section id="slide-dilemma" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 02 • Core Problem</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">The Intermediate Segment Dilemma</h2>
+        <p class="text-xs text-slate-500 mt-1">Why static seat reservation models lose up to 65% of physical capacity</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- NAIVE MODEL -->
+        <div class="p-4 rounded border border-red-200 bg-red-50/50">
+          <h3 class="text-xs font-bold text-red-900 mb-1">Traditional Naive Model: Single Static Booking</h3>
+          <p class="text-xs text-slate-700 leading-relaxed mb-3">
+            In naive models, a booking record is stored as <code class="bg-red-100 text-red-800 px-1 py-0.5 rounded text-[11px]">Ticket(Train_ID, Seat_No, Date)</code>.
+          </p>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            If a train travels <strong>NDLS ➔ KOTA ➔ BRC ➔ BCT</strong>, and Passenger A books Seat 12 from NDLS to KOTA, the seat is marked occupied for the entire route. When Passenger B requests KOTA to BCT, the system incorrectly reports zero vacancy.
+          </p>
+          <div class="mt-3 text-[11px] font-semibold text-red-800">
+            Impact: Severe artificial capacity loss across multi-stop journeys.
+          </div>
+        </div>
+
+        <!-- BITMASK MODEL -->
+        <div class="p-4 rounded border border-emerald-200 bg-emerald-50/50">
+          <h3 class="text-xs font-bold text-emerald-900 mb-1">Segment-Based Bitmask Engine</h3>
+          <p class="text-xs text-slate-700 leading-relaxed mb-3">
+            A route with $N$ halts yields $N - 1$ distinct sequential travel legs. Each physical berth maintains an occupancy bitmask:
+          </p>
+          <div class="bg-white p-2.5 rounded border border-emerald-300 font-mono text-[11px] text-slate-800 mb-3 space-y-1">
+            <div>NDLS ➔ KOTA (Leg 1): [1, 0, 0]</div>
+            <div>KOTA ➔ BCT (Legs 2 & 3): [0, 1, 1]</div>
+            <div class="text-emerald-700 font-bold">Bitwise Collision: (1 0 0 & 0 1 1) == 0 ➔ REUSABLE</div>
+          </div>
+          <div class="text-[11px] font-semibold text-emerald-800">
+            Impact: Seat utilization increases from ~60% to over 96%.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: SYSTEM TOPOLOGY ARCHITECTURE -->
+    <section id="slide-topology" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 03 • System Architecture</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">High-Throughput Infrastructure Topology</h2>
+        <p class="text-xs text-slate-500 mt-1">Layered breakdown from client entry to read replicas and asynchronous event queues</p>
+      </div>
+
+      <!-- CLEAN TOPOLOGY CARDS -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs mb-6">
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-blue-600 uppercase">Layer 1</span>
+          <div class="font-bold text-slate-900 mt-1">Edge & Gateway</div>
+          <p class="text-[11px] text-slate-600 mt-1">Cloudflare WAF rate limiting (5 req/sec/IP) + Envoy API Gateway JWT routing.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-blue-600 uppercase">Layer 2</span>
+          <div class="font-bold text-slate-900 mt-1">In-Memory Cache</div>
+          <p class="text-[11px] text-slate-600 mt-1">Redis 7.x cluster managing seat availability bitmasks & Redlock 8-minute hold tokens.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-blue-600 uppercase">Layer 3</span>
+          <div class="font-bold text-slate-900 mt-1">ACID Relational Core</div>
+          <p class="text-[11px] text-slate-600 mt-1">PostgreSQL Master partitioned monthly on journey date with row-level locks.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-blue-600 uppercase">Layer 4</span>
+          <div class="font-bold text-slate-900 mt-1">Replicas & Kafka</div>
+          <p class="text-[11px] text-slate-600 mt-1">Async Read Replicas for analytical queries Q1-Q20 + Kafka for automated RAC promotion.</p>
+        </div>
+      </div>
+
+      <!-- TEXTUAL TOPOLOGY FLOW -->
+      <div class="bg-slate-900 text-slate-200 p-4 rounded text-xs font-mono overflow-x-auto leading-relaxed">
+[Clients: Web & App] ──▶ [Cloudflare WAF] ──▶ [Envoy API Gateway]
+                                                      │
+             ┌────────────────────────────────────────┴────────────────────────────────────────┐
+             ▼                                        ▼                                        ▼
+     [Search Service]                        [Booking Engine]                         [PNR & Status Svc]
+     (Elasticsearch)                         (2-Phase Hold Token)                     (Read Replicas)
+             │                                        │                                        │
+             └───────────────────┬────────────────────┴────────────────────────────────────────┘
+                                 ▼
+                      [Redis Cluster 7.x] (Seat Bitmasks & 8-Min Hold)
+                                 │
+                                 ▼
+                     [Primary DB Master] (Monthly Range Partitioning)
+                                 │
+                  ┌──────────────┴──────────────┐
+                  ▼                             ▼
+       [Async Read Replicas]          [Apache Kafka Event Bus]
+       (Analytical Queries Q1-Q20)              │
+                                  ┌─────────────┴─────────────┐
+                                  ▼                           ▼
+                      [RAC / WL Auto-Promoter]     [Notification Service]</div>
+    </section>
+
+    <!-- SLIDE 4: MERMAID ER DIAGRAM -->
+    <section id="slide-er" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 04 • Entity-Relationship Design</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">Standard Mermaid ER Diagram</h2>
+        <p class="text-xs text-slate-500 mt-1">Clean Crow's Foot relational model connecting all 12 core system entities</p>
+      </div>
+
+      <!-- MERMAID CONTAINER -->
+      <div class="border border-slate-200 rounded p-4 bg-white overflow-x-auto">
+        <pre class="mermaid text-xs">
+erDiagram
+    USERS ||--o{ TICKETS : places
+    TRAINS ||--o{ TRAIN_SCHEDULES : traverses
+    STATIONS ||--o{ TRAIN_SCHEDULES : halts_at
+    TRAINS ||--o{ COACHES : composed_of
+    COACHES ||--o{ BERTHS : contains
+    TRAINS ||--o{ TICKETS : booked_for
+    TICKETS ||--|{ PASSENGERS : includes
+    TICKETS ||--o{ PAYMENTS : paid_by
+    BERTHS ||--o{ SEGMENT_INVENTORY : tracked_in
+    BERTHS ||--o{ PASSENGERS : allocated_to
+    PASSENGERS ||--o{ WAITLIST_QUEUE : enqueued_in
+
+    USERS {
+        uuid user_id PK
+        string full_name
+        string email UK
+        string phone_number UK
+        string aadhaar_hash UK
+    }
+
+    TRAINS {
+        int train_no PK
+        string train_name
+        string train_type
+        string source_stn FK
+        string dest_stn FK
+        int total_distance_km
+    }
+
+    TRAIN_SCHEDULES {
+        bigint schedule_id PK
+        int train_no FK
+        string station_code FK
+        int stop_order
+        time arrival_time
+        time departure_time
+        int distance_from_origin_km
+    }
+
+    COACHES {
+        int coach_id PK
+        int train_no FK
+        string coach_code
+        string class_code
+        int total_berths
+    }
+
+    BERTHS {
+        int berth_id PK
+        int coach_id FK
+        int berth_number
+        string berth_type
+    }
+
+    SEGMENT_INVENTORY {
+        bigint inventory_id PK
+        int train_no FK
+        date journey_date
+        int from_stop_order
+        int to_stop_order
+        int berth_id FK
+        string status
+        string current_pnr
+    }
+
+    TICKETS {
+        char pnr_no PK
+        date journey_date PK
+        uuid user_id FK
+        int train_no FK
+        string src_station FK
+        string dest_station FK
+        decimal total_fare
+        string ticket_status
+    }
+
+    PASSENGERS {
+        bigint passenger_id PK
+        char pnr_no FK
+        string full_name
+        int age
+        char gender
+        int assigned_berth_id FK
+        string current_status
+    }
+
+    PAYMENTS {
+        string transaction_id PK
+        char pnr_no FK
+        decimal amount_paid
+        string payment_mode
+        string payment_status
+        timestamp payment_timestamp
+    }
+
+    WAITLIST_QUEUE {
+        bigint queue_id PK
+        int train_no FK
+        date journey_date
+        bigint passenger_id FK
+        int queue_position
+    }
+        </pre>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: SCHEMA DICTIONARY -->
+    <section id="slide-schema" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 05 • Data Dictionary</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">12 Core Relational Tables</h2>
+        <p class="text-xs text-slate-500 mt-1">Complete structural catalog of entities, primary keys, and functional constraints</p>
+      </div>
+
+      <!-- CLEAN TABLE -->
+      <div class="overflow-x-auto rounded border border-slate-200">
+        <table class="w-full text-left text-xs bg-white">
+          <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+            <tr>
+              <th class="py-2.5 px-3">#</th>
+              <th class="py-2.5 px-3">Entity Name</th>
+              <th class="py-2.5 px-3">Primary Key</th>
+              <th class="py-2.5 px-3">Foreign Key References</th>
+              <th class="py-2.5 px-3">Business Semantics</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-700">
+            <tr>
+              <td class="py-2 px-3 font-mono">1</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Users</td>
+              <td class="py-2 px-3 font-mono text-slate-800">user_id (UUID)</td>
+              <td class="py-2 px-3 text-slate-400">—</td>
+              <td class="py-2 px-3">Traveler accounts, contact information, and encrypted Aadhaar hash for Tatkal verification.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">2</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Stations</td>
+              <td class="py-2 px-3 font-mono text-slate-800">station_code</td>
+              <td class="py-2 px-3 text-slate-400">—</td>
+              <td class="py-2 px-3">Physical railway junctions (e.g. NDLS, BCT), administrative zones, and platform counts.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">3</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Trains</td>
+              <td class="py-2 px-3 font-mono text-slate-800">train_no</td>
+              <td class="py-2 px-3 font-mono">source_stn, dest_stn</td>
+              <td class="py-2 px-3">Master train registry, train speed type, endpoints, and running days bitmask.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">4</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Train_Schedules</td>
+              <td class="py-2 px-3 font-mono text-slate-800">schedule_id</td>
+              <td class="py-2 px-3 font-mono">train_no, station_code</td>
+              <td class="py-2 px-3">Ordered sequence of halts, arrival/departure timestamps, and cumulative track distance.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">5</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Coaches</td>
+              <td class="py-2 px-3 font-mono text-slate-800">coach_id</td>
+              <td class="py-2 px-3 font-mono">train_no</td>
+              <td class="py-2 px-3">Physical cars attached to a train rake (B1, A1, H1), class code, and berth capacity.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">6</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Berths</td>
+              <td class="py-2 px-3 font-mono text-slate-800">berth_id</td>
+              <td class="py-2 px-3 font-mono">coach_id</td>
+              <td class="py-2 px-3">Individual physical seats (1 to 72) and berth types (Lower, Middle, Upper, Side Lower).</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">7</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Segment_Inventory</td>
+              <td class="py-2 px-3 font-mono text-slate-800">inventory_id</td>
+              <td class="py-2 px-3 font-mono">train_no, berth_id</td>
+              <td class="py-2 px-3">Real-time leg availability ledger tracking status (AVAILABLE, LOCKED, CONFIRMED).</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">8</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Tickets</td>
+              <td class="py-2 px-3 font-mono text-slate-800">pnr_no, journey_date</td>
+              <td class="py-2 px-3 font-mono">user_id, train_no</td>
+              <td class="py-2 px-3">Master booking record partitioned monthly on journey_date to optimize active transaction queries.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">9</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Passengers</td>
+              <td class="py-2 px-3 font-mono text-slate-800">passenger_id</td>
+              <td class="py-2 px-3 font-mono">pnr_no, assigned_berth_id</td>
+              <td class="py-2 px-3">Individual travelers attached to a PNR, demographic data, and current seat status.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">10</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Payments</td>
+              <td class="py-2 px-3 font-mono text-slate-800">transaction_id</td>
+              <td class="py-2 px-3 font-mono">pnr_no</td>
+              <td class="py-2 px-3">Payment settlement ledger, gateway references, and status reconciliation.</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">11</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Quotas</td>
+              <td class="py-2 px-3 font-mono text-slate-800">quota_code</td>
+              <td class="py-2 px-3 text-slate-400">—</td>
+              <td class="py-2 px-3">Reservation quotas: General (GN), Tatkal (TQ), Ladies (LD), Senior Citizen (SS).</td>
+            </tr>
+            <tr>
+              <td class="py-2 px-3 font-mono">12</td>
+              <td class="py-2 px-3 font-bold text-slate-900">Waitlist_Queue</td>
+              <td class="py-2 px-3 font-mono text-slate-800">queue_id</td>
+              <td class="py-2 px-3 font-mono">train_no, passenger_id</td>
+              <td class="py-2 px-3">FIFO priority queue managing automated passenger promotion on ticket cancellations.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: NORMALIZATION (1NF to BCNF) -->
+    <section id="slide-normalization" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 06 • Relational Normalization</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">Formal Normalization (1NF ➔ BCNF)</h2>
+        <p class="text-xs text-slate-500 mt-1">Systematic elimination of redundancy and update/delete anomalies</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 rounded border border-slate-200 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-900">1NF: Atomic Attributes</h4>
+            <span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">1NF</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed mb-2">
+            <strong>Violation:</strong> Storing passenger names as CSV string arrays: <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Ticket(pnr_no, passenger_names="Alice, Bob")</code>.
+          </p>
+          <p class="text-slate-700 leading-relaxed">
+            <strong>Resolution:</strong> Extracted into distinct <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Passengers</code> entity where each tuple represents exactly one human passenger.
+          </p>
+        </div>
+
+        <div class="p-4 rounded border border-slate-200 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-900">2NF: No Partial Dependencies</h4>
+            <span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">2NF</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed mb-2">
+            <strong>Violation:</strong> In <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Ticket_Passengers(pnr_no, passenger_name, train_name)</code>, train_name depends solely on pnr_no, not on the passenger.
+          </p>
+          <p class="text-slate-700 leading-relaxed">
+            <strong>Resolution:</strong> Split into <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Tickets(pnr_no, train_no)</code> and <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Passengers(passenger_id, pnr_no, full_name)</code>.
+          </p>
+        </div>
+
+        <div class="p-4 rounded border border-slate-200 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-900">3NF: No Transitive Keys</h4>
+            <span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">3NF</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed mb-2">
+            <strong>Violation:</strong> In <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Tickets(pnr_no, src_station, station_state)</code>, pnr_no determines src_station, which determines station_state.
+          </p>
+          <p class="text-slate-700 leading-relaxed">
+            <strong>Resolution:</strong> Removed station_state from Tickets. State is stored strictly inside <code class="bg-white px-1 py-0.5 rounded border border-slate-300">Stations(station_code, state)</code>.
+          </p>
+        </div>
+
+        <div class="p-4 rounded border border-slate-200 bg-slate-50">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="font-bold text-slate-900">BCNF: Superkey Determinants</h4>
+            <span class="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded font-mono font-semibold">BCNF</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed mb-2">
+            <strong>Requirement:</strong> For every functional dependency $X \rightarrow Y$, $X$ must be a superkey.
+          </p>
+          <p class="text-slate-700 leading-relaxed">
+            <strong>Resolution:</strong> In Train_Schedules, enforce candidate keys via <code class="bg-white px-1 py-0.5 rounded border border-slate-300">UNIQUE(train_no, stop_order)</code> and <code class="bg-white px-1 py-0.5 rounded border border-slate-300">UNIQUE(train_no, station_code)</code>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: CONCURRENCY & TATKAL PROTOCOL -->
+    <section id="slide-concurrency" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6">
+        <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 07 • Concurrency Control</span>
+        <h2 class="text-xl font-bold text-slate-900 mt-1">Tatkal Rush & Two-Phase Distributed Locking</h2>
+        <p class="text-xs text-slate-500 mt-1">Eliminating double-booking during peak morning reservation surges</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs mb-6">
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-slate-500">Step 1 (0ms - 5ms)</span>
+          <div class="font-bold text-slate-900 mt-1">Redis Redlock Token</div>
+          <p class="text-[11px] text-slate-600 mt-1">Atomic key acquisition: <code class="bg-white px-1 py-0.5 rounded text-[10px] border border-slate-300">SET lock:berth:12 token NX PX 480000</code>. Fast-fails excess requests.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-slate-500">Step 2 (5ms - 25ms)</span>
+          <div class="font-bold text-slate-900 mt-1">ACID DB Row Hold</div>
+          <p class="text-[11px] text-slate-600 mt-1">Primary DB issues <code class="bg-white px-1 py-0.5 rounded text-[10px] border border-slate-300">SELECT ... FOR UPDATE</code> on Segment_Inventory to mark status <span class="font-semibold text-amber-700">LOCKED</span>.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-slate-500">Step 3 (30s - 120s)</span>
+          <div class="font-bold text-slate-900 mt-1">Payment Webhook</div>
+          <p class="text-[11px] text-slate-600 mt-1">User completes UPI payment. On success, status transitions to <span class="font-semibold text-emerald-700">CONFIRMED</span> and PNR is issued.</p>
+        </div>
+
+        <div class="p-3 rounded border border-slate-200 bg-slate-50">
+          <span class="text-[10px] font-bold text-slate-500">Step 4 (Timeout / 8m)</span>
+          <div class="font-bold text-slate-900 mt-1">Auto-Reclamation</div>
+          <p class="text-[11px] text-slate-600 mt-1">If payment is abandoned, Redis TTL expires and an async worker resets the row to <span class="font-semibold text-blue-700">AVAILABLE</span>.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 text-slate-200 p-4 rounded text-xs font-mono overflow-x-auto leading-relaxed">
+-- Two-Phase Pessimistic Booking Transaction (Repeatable Read)
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+START TRANSACTION;
+
+-- 1. Pessimistic lock on available berth segments
+SELECT inventory_id, berth_id 
+FROM Segment_Inventory 
+WHERE train_no = 12951 AND journey_date = '2026-11-15'
+  AND from_stop_order &lt; 4 AND to_stop_order &gt; 1 AND status = 'AVAILABLE'
+LIMIT 1 FOR UPDATE;
+
+-- 2. Lock berth with temporary 8-minute reservation token
+UPDATE Segment_Inventory 
+SET status = 'LOCKED', current_pnr = 'PNR8910421'
+WHERE inventory_id = 458021;
+
+-- 3. Insert reservation master
+INSERT INTO Tickets (pnr_no, user_id, train_no, src_station, dest_station, 
+                    from_stop_order, to_stop_order, journey_date, class_code, 
+                    base_fare, gst_amount, total_fare, ticket_status)
+VALUES ('PNR8910421', 'u-9912-321', 12951, 'NDLS', 'BCT', 1, 4, 
+        '2026-11-15', '3A', 1450.00, 72.50, 1522.50, 'CONFIRMED');
+
+COMMIT;</div>
+    </section>
+
+    <!-- SLIDE 8: THE 20 SQL QUESTIONS SUITE -->
+    <section id="slide-questions" class="slide-card p-6 md:p-8">
+      <div class="border-b border-slate-200 pb-4 mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Slide 08 • Analytical & Operational SQL</span>
+          <h2 class="text-xl font-bold text-slate-900 mt-1">20 Analytical & Operational SQL Questions</h2>
+          <p class="text-xs text-slate-500 mt-1">Categorized into 4 operational tiers with live explain plans and result outputs</p>
+        </div>
+
+        <!-- CATEGORY FILTER BUTTONS -->
+        <div class="flex flex-wrap gap-1 text-xs no-print">
+          <button onclick="setQueryCategory('all')" id="qtab-all" class="px-2.5 py-1 rounded bg-slate-900 text-white font-medium">All (20)</button>
+          <button onclick="setQueryCategory('filtering')" id="qtab-filtering" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700">Filtering (Q1-Q5)</button>
+          <button onclick="setQueryCategory('joins')" id="qtab-joins" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700">Joins (Q6-Q10)</button>
+          <button onclick="setQueryCategory('aggs')" id="qtab-aggs" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700">Aggregations (Q11-Q15)</button>
+          <button onclick="setQueryCategory('window')" id="qtab-window" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700">Window (Q16-Q20)</button>
+        </div>
+      </div>
+
+      <!-- QUESTIONS CONTAINER (CLEAN PLAIN CARD LIST) -->
+      <div class="space-y-4" id="questionsListContainer">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print mt-12">
+    <p>Railway Reservation System (RRS) — Enterprise Database Design & Analytical Report</p>
+    <p class="text-[11px] text-slate-400 mt-1">Normalized to 3NF/BCNF • Segment Bitmask Engine • 20 Verified Production SQL Scenarios</p>
+  </footer>
+
+  <!-- EMBEDDED JAVASCRIPT & PPT GENERATOR -->
+  <script>
+    // INITIALIZE MERMAID
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      themeVariables: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '12px',
+        primaryColor: '#ffffff',
+        primaryBorderColor: '#64748b',
+        primaryTextColor: '#0f172a',
+        lineColor: '#475569'
+      }
+    });
+
+    // 20 SQL QUESTIONS DATA SET
+    const QUESTIONS = [
+      {
+        id: 1,
+        cat: "filtering",
+        number: "Q01",
+        title: "Active Superfast & Vande Bharat Services",
+        prompt: "Find all active Superfast and Vande Bharat train services, listing train number, name, origin, destination, and distance sorted by longest run.",
+        tables: "Trains",
+        sql: `SELECT train_no, train_name, train_type, source_stn, dest_stn, total_distance_km
+FROM Trains
+WHERE train_type IN ('SUPERFAST', 'VANDE_BHARAT')
+ORDER BY total_distance_km DESC;`,
+        plan: "Index range scan on idx_train_type. Avoids temporary disk sort.",
+        time: "0.8ms",
+        rows: [
+          { "train_no": 12137, "train_name": "Punjab Mail", "train_type": "SUPERFAST", "source": "CSMT", "dest": "FZR", "distance": "1,926 km" },
+          { "train_no": 12951, "train_name": "Mumbai Rajdhani", "train_type": "SUPERFAST", "source": "NDLS", "dest": "BCT", "distance": "1,384 km" },
+          { "train_no": 22436, "train_name": "Vande Bharat Express", "train_type": "VANDE_BHARAT", "source": "NDLS", "dest": "BSB", "distance": "759 km" }
+        ]
+      },
+      {
+        id: 2,
+        cat: "filtering",
+        number: "Q02",
+        title: "Senior Citizen Concession Compliance",
+        prompt: "Extract all senior travelers (age >= 60) to verify lower berth priority allocation rules and concession compliance.",
+        tables: "Passengers",
+        sql: `SELECT passenger_id, full_name, age, gender, pnr_no, current_status
+FROM Passengers
+WHERE age >= 60
+ORDER BY age DESC;`,
+        plan: "Range scan on idx_passengers_age.",
+        time: "1.1ms",
+        rows: [
+          { "passenger_id": 9003, "full_name": "Suresh Menon", "age": 67, "gender": "M", "pnr": "PNR1000003", "status": "WL/1" },
+          { "passenger_id": 9018, "full_name": "Kamala Devi", "age": 64, "gender": "F", "pnr": "PNR1000012", "status": "CNF/B1/04" }
+        ]
+      },
+      {
+        id: 3,
+        cat: "filtering",
+        number: "Q03",
+        title: "Real-Time Waitlist Density Extraction",
+        prompt: "Calculate the total waitlisted passenger count per train and class for a given departure date to evaluate extra coach requirements.",
+        tables: "Tickets, Trains, Passengers",
+        sql: `SELECT t.pnr_no, t.train_no, tr.train_name, t.class_code, 
+       COUNT(p.passenger_id) AS waitlisted_pax
+FROM Tickets t
+JOIN Trains tr ON t.train_no = tr.train_no
+JOIN Passengers p ON t.pnr_no = p.pnr_no AND t.journey_date = p.journey_date
+WHERE t.ticket_status = 'WAITLIST'
+  AND t.journey_date = '2026-11-15'
+GROUP BY t.pnr_no, t.train_no, tr.train_name, t.class_code;`,
+        plan: "Partition pruning scans solely active partition p_2026_11.",
+        time: "1.4ms",
+        rows: [
+          { "pnr_no": "PNR1000003", "train_no": 12951, "train_name": "Mumbai Rajdhani", "class": "3A", "waitlist_count": 1 }
+        ]
+      },
+      {
+        id: 4,
+        cat: "filtering",
+        number: "Q04",
+        title: "Station Platform Capacity Audit (Platforms >= 5)",
+        prompt: "List major junction stations in Maharashtra with 5 or more platforms capable of terminating 24-coach trains.",
+        tables: "Stations",
+        sql: `SELECT station_code, station_name, division, railway_zone, platform_count
+FROM Stations
+WHERE state = 'Maharashtra' AND platform_count >= 5
+ORDER BY platform_count DESC;`,
+        plan: "Filter on state and platform_count.",
+        time: "0.5ms",
+        rows: [
+          { "station_code": "CSMT", "station_name": "C. Shivaji Maharaj Terminus", "division": "Mumbai", "zone": "CR", "platforms": 18 },
+          { "station_code": "BCT", "station_name": "Mumbai Central", "division": "Mumbai", "zone": "WR", "platforms": 8 }
+        ]
+      },
+      {
+        id: 5,
+        cat: "filtering",
+        number: "Q05",
+        title: "Recent High-Value Anti-Fraud Booking Audit",
+        prompt: "Retrieve all reservations created in the past 7 days with a total fare exceeding ₹3,000 to identify commercial agent hoarding.",
+        tables: "Tickets",
+        sql: `SELECT pnr_no, user_id, train_no, total_fare, booking_timestamp
+FROM Tickets
+WHERE booking_timestamp >= NOW() - INTERVAL 7 DAY
+  AND total_fare > 3000.00
+ORDER BY booking_timestamp DESC;`,
+        plan: "Temporal index scan on idx_booking_ts.",
+        time: "1.2ms",
+        rows: [
+          { "pnr_no": "PNR8901234", "user_id": "u-7761-c89", "train_no": 12951, "fare": "₹ 6,080.00", "timestamp": "2026-10-26 10:02" },
+          { "pnr_no": "PNR7712390", "user_id": "u-3312-b56", "train_no": 22436, "fare": "₹ 3,450.00", "timestamp": "2026-10-25 14:32" }
+        ]
+      },
+      {
+        id: 6,
+        cat: "joins",
+        number: "Q06",
+        title: "Full PNR Passenger Travel Manifest",
+        prompt: "Assemble the complete passenger conductor chart for a given PNR across 5 related tables.",
+        tables: "Tickets, Trains, Passengers, Berths, Coaches",
+        sql: `SELECT t.pnr_no, tr.train_no, tr.train_name, t.journey_date, t.src_station, t.dest_station,
+       p.full_name, p.age, p.current_status, COALESCE(b.berth_number, 0) AS berth_no,
+       COALESCE(c.coach_code, 'N/A') AS coach
+FROM Tickets t
+JOIN Trains tr ON t.train_no = tr.train_no
+JOIN Passengers p ON t.pnr_no = p.pnr_no AND t.journey_date = p.journey_date
+LEFT JOIN Berths b ON p.assigned_berth_id = b.berth_id
+LEFT JOIN Coaches c ON b.coach_id = c.coach_id
+WHERE t.pnr_no = 'PNR1000001';`,
+        plan: "5-way nested loop join with PK lookups.",
+        time: "1.6ms",
+        rows: [
+          { "pnr": "PNR1000001", "train": "Mumbai Rajdhani", "date": "2026-11-15", "from": "NDLS", "to": "KOTA", "passenger": "Aarav Sharma", "status": "CONFIRMED", "coach": "B1", "berth": 12 }
+        ]
+      },
+      {
+        id: 7,
+        cat: "joins",
+        number: "Q07",
+        title: "Sequential Route Timetable with Dwell Times",
+        prompt: "List the ordered schedule timetable for Train 12951, including arrival, departure, and halt dwell times.",
+        tables: "Train_Schedules, Stations",
+        sql: `SELECT s.stop_order, st.station_name, s.station_code, s.arrival_time, 
+       s.departure_time, s.halt_minutes, s.distance_from_origin_km
+FROM Train_Schedules s
+JOIN Stations st ON s.station_code = st.station_code
+WHERE s.train_no = 12951
+ORDER BY s.stop_order ASC;`,
+        plan: "Uses candidate key (train_no, stop_order) for index scan.",
+        time: "0.9ms",
+        rows: [
+          { "stop": 1, "station": "New Delhi", "code": "NDLS", "arrival": "--", "departure": "16:55", "halt": "0 min", "km": "0 km" },
+          { "stop": 2, "station": "Kota Junction", "code": "KOTA", "arrival": "20:55", "departure": "21:00", "halt": "5 min", "km": "465 km" },
+          { "stop": 3, "station": "Vadodara Junction", "code": "BRC", "arrival": "03:10", "departure": "03:18", "halt": "8 min", "km": "992 km" },
+          { "stop": 4, "station": "Mumbai Central", "code": "BCT", "arrival": "08:35", "departure": "--", "halt": "0 min", "km": "1,384 km" }
+        ]
+      },
+      {
+        id: 8,
+        cat: "joins",
+        number: "Q08",
+        title: "Origin Junction Passenger Extraction for Alerts",
+        prompt: "Extract passenger contacts departing from 'NDLS' today for emergency terminal notifications.",
+        tables: "Users, Tickets",
+        sql: `SELECT DISTINCT u.user_id, u.full_name, u.email, u.phone_number, t.pnr_no, t.journey_date
+FROM Users u
+JOIN Tickets t ON u.user_id = t.user_id
+WHERE t.src_station = 'NDLS'
+  AND t.ticket_status = 'CONFIRMED'
+  AND t.journey_date = CURDATE();`,
+        plan: "Hash join on user_id with partition pruning on CURDATE().",
+        time: "1.3ms",
+        rows: [
+          { "user_id": "u-9841-a12", "name": "Aarav Sharma", "email": "aarav@rail.in", "phone": "+919811223344", "pnr": "PNR1000001", "date": "2026-10-28" },
+          { "user_id": "u-3312-b56", "name": "Pooja Hegde", "email": "pooja.h@rail.in", "phone": "+919822334455", "pnr": "PNR1000002", "date": "2026-10-28" }
+        ]
+      },
+      {
+        id: 9,
+        cat: "joins",
+        number: "Q09",
+        title: "UPI Financial Transaction Ledger Reconciliation",
+        prompt: "Reconcile successful UPI payment transactions with the booking master and passenger identity records.",
+        tables: "Payments, Tickets, Users",
+        sql: `SELECT p.transaction_id, p.pnr_no, u.full_name AS booked_by, p.amount_paid, p.payment_timestamp
+FROM Payments p
+JOIN Tickets t ON p.pnr_no = t.pnr_no AND p.journey_date = t.journey_date
+JOIN Users u ON t.user_id = u.user_id
+WHERE p.payment_mode = 'UPI' AND p.payment_status = 'SUCCESS'
+ORDER BY p.payment_timestamp DESC;`,
+        plan: "Index join over pnr_no with covering index.",
+        time: "1.5ms",
+        rows: [
+          { "txn_id": "TXN_UPI_990182", "pnr": "PNR1000001", "booked_by": "Aarav Sharma", "amount": "₹ 680.00", "timestamp": "2026-10-28 09:14" }
+        ]
+      },
+      {
+        id: 10,
+        cat: "joins",
+        number: "Q10",
+        title: "Dual-Halt Route Intersect (Station X to Y)",
+        prompt: "Find all direct trains connecting Station A (NDLS) to Station B (BCT) in the correct forward travel direction.",
+        tables: "Train_Schedules (Self-Join), Trains",
+        sql: `SELECT s1.train_no, tr.train_name, s1.departure_time, s2.arrival_time,
+       (s2.distance_from_origin_km - s1.distance_from_origin_km) AS journey_km
+FROM Train_Schedules s1
+JOIN Train_Schedules s2 ON s1.train_no = s2.train_no
+JOIN Trains tr ON s1.train_no = tr.train_no
+WHERE s1.station_code = 'NDLS'
+  AND s2.station_code = 'BCT'
+  AND s1.stop_order < s2.stop_order;`,
+        plan: "Self-join on Train_Schedules with directional predicate.",
+        time: "1.1ms",
+        rows: [
+          { "train_no": 12951, "train_name": "Mumbai Rajdhani", "departure": "16:55", "arrival": "08:35", "distance": "1,384 km" }
+        ]
+      },
+      {
+        id: 11,
+        cat: "aggs",
+        number: "Q11",
+        title: "Gross Revenue Yield per Train Rake",
+        prompt: "Compute the gross ticket sales revenue generated by each train service, excluding cancellations.",
+        tables: "Trains, Tickets",
+        sql: `SELECT tr.train_no, tr.train_name, COUNT(t.pnr_no) AS confirmed_bookings,
+       COALESCE(SUM(t.total_fare), 0.00) AS total_gross_revenue
+FROM Trains tr
+LEFT JOIN Tickets t ON tr.train_no = t.train_no AND t.ticket_status != 'CANCELLED'
+GROUP BY tr.train_no, tr.train_name
+ORDER BY total_gross_revenue DESC;`,
+        plan: "Group aggregate on train_no with COALESCE.",
+        time: "2.1ms",
+        rows: [
+          { "train_no": 12951, "train_name": "Mumbai Rajdhani", "bookings": 2, "revenue": "₹ 2,200.00" },
+          { "train_no": 22436, "train_name": "Vande Bharat Express", "bookings": 1, "revenue": "₹ 1,750.00" }
+        ]
+      },
+      {
+        id: 12,
+        cat: "aggs",
+        number: "Q12",
+        title: "Passenger Headcount Distribution per PNR",
+        prompt: "Analyze booking party sizes by counting total passengers grouped under each PNR reservation.",
+        tables: "Passengers",
+        sql: `SELECT pnr_no, COUNT(passenger_id) AS total_passengers
+FROM Passengers
+GROUP BY pnr_no
+ORDER BY total_passengers DESC;`,
+        plan: "Hash aggregate on pnr_no.",
+        time: "0.9ms",
+        rows: [
+          { "pnr_no": "PNR1000001", "passengers": 1 },
+          { "pnr_no": "PNR1000002", "passengers": 1 },
+          { "pnr_no": "PNR1000003", "passengers": 1 }
+        ]
+      },
+      {
+        id: 13,
+        cat: "aggs",
+        number: "Q13",
+        title: "Average Ticket Fare and Yield by Travel Class",
+        prompt: "Calculate the average fare and aggregate sales yield broken down by travel class (3A, 2A, 1A, SL).",
+        tables: "Tickets",
+        sql: `SELECT class_code, COUNT(pnr_no) AS total_tickets_sold,
+       ROUND(AVG(total_fare), 2) AS average_ticket_fare,
+       SUM(total_fare) AS class_total_revenue
+FROM Tickets
+WHERE ticket_status = 'CONFIRMED'
+GROUP BY class_code
+ORDER BY class_total_revenue DESC;`,
+        plan: "Index scan on idx_class_code.",
+        time: "1.4ms",
+        rows: [
+          { "class": "3A", "tickets_sold": 2, "avg_fare": "₹ 1,100.00", "total_yield": "₹ 2,200.00" }
+        ]
+      },
+      {
+        id: 14,
+        cat: "aggs",
+        number: "Q14",
+        title: "Top 5 Origin Junctions by Passenger Departures",
+        prompt: "Identify the top junction stations originating the highest number of confirmed passenger departures.",
+        tables: "Stations, Tickets",
+        sql: `SELECT st.station_code, st.station_name, st.state, 
+       COUNT(t.pnr_no) AS total_departures
+FROM Stations st
+JOIN Tickets t ON st.station_code = t.src_station
+WHERE t.ticket_status = 'CONFIRMED'
+GROUP BY st.station_code, st.station_name, st.state
+ORDER BY total_departures DESC
+LIMIT 5;`,
+        plan: "Hash join with top-N heap sort.",
+        time: "1.7ms",
+        rows: [
+          { "code": "NDLS", "station": "New Delhi Railway Station", "state": "Delhi", "departures": 2 }
+        ]
+      },
+      {
+        id: 15,
+        cat: "aggs",
+        number: "Q15",
+        title: "Payment Gateway Failure Rate Benchmark",
+        prompt: "Calculate the percentage failure rate across payment channels (UPI, Cards, NetBanking).",
+        tables: "Payments",
+        sql: `SELECT payment_mode, COUNT(*) AS total_attempts,
+       SUM(CASE WHEN payment_status = 'FAILED' THEN 1 ELSE 0 END) AS failed_attempts,
+       ROUND((SUM(CASE WHEN payment_status = 'FAILED' THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2) AS failure_rate_pct
+FROM Payments
+GROUP BY payment_mode
+ORDER BY failure_rate_pct DESC;`,
+        plan: "Single pass table scan with conditional aggregation.",
+        time: "1.1ms",
+        rows: [
+          { "mode": "NET_BANKING", "attempts": 12, "failures": 1, "failure_rate": "8.33%" },
+          { "mode": "CREDIT_CARD", "attempts": 45, "failures": 2, "failure_rate": "4.44%" },
+          { "mode": "UPI", "attempts": 140, "failures": 1, "failure_rate": "0.71%" }
+        ]
+      },
+      {
+        id: 16,
+        cat: "window",
+        number: "Q16",
+        title: "Whale Passenger Identification (Above Average)",
+        prompt: "Identify commercial ticket agents booking significantly more tickets than platform average using a correlated subquery.",
+        tables: "Users, Tickets",
+        sql: `SELECT u.user_id, u.full_name, u.email, COUNT(t.pnr_no) AS user_ticket_count
+FROM Users u
+JOIN Tickets t ON u.user_id = t.user_id
+GROUP BY u.user_id, u.full_name, u.email
+HAVING COUNT(t.pnr_no) > (
+    SELECT AVG(ticket_count)
+    FROM (
+        SELECT COUNT(pnr_no) AS ticket_count
+        FROM Tickets
+        GROUP BY user_id
+    ) AS user_averages
+)
+ORDER BY user_ticket_count DESC;`,
+        plan: "Materialized subquery average filtered via HAVING.",
+        time: "2.3ms",
+        rows: [
+          { "user_id": "u-7761-c89", "name": "MakeMyTrip Agent #4", "email": "agent4@mmt.com", "bookings": 24 }
+        ]
+      },
+      {
+        id: 17,
+        cat: "window",
+        number: "Q17",
+        title: "Unutilized Trains with Zero Bookings for Tomorrow",
+        prompt: "Perform an anti-join using NOT EXISTS to identify scheduled trains with zero booked tickets for tomorrow.",
+        tables: "Trains, Tickets",
+        sql: `SELECT tr.train_no, tr.train_name, tr.source_stn, tr.dest_stn
+FROM Trains tr
+WHERE NOT EXISTS (
+    SELECT 1 
+    FROM Tickets t 
+    WHERE t.train_no = tr.train_no 
+      AND t.journey_date = CURDATE() + INTERVAL 1 DAY
+      AND t.ticket_status != 'CANCELLED'
+);`,
+        plan: "Correlated NOT EXISTS terminating on first match.",
+        time: "1.2ms",
+        rows: [
+          { "train_no": 12137, "train_name": "Punjab Mail", "from": "CSMT", "to": "FZR" }
+        ]
+      },
+      {
+        id: 18,
+        cat: "window",
+        number: "Q18",
+        title: "Single Highest Fare Booking Detection",
+        prompt: "Extract the passenger and ticket details for the single highest fare ticket recorded in the system.",
+        tables: "Passengers, Tickets",
+        sql: `SELECT p.full_name AS passenger_name, t.pnr_no, t.train_no, 
+       t.class_code, t.total_fare
+FROM Passengers p
+JOIN Tickets t ON p.pnr_no = t.pnr_no AND p.journey_date = t.journey_date
+WHERE t.total_fare = (
+    SELECT MAX(total_fare) 
+    FROM Tickets
+);`,
+        plan: "Scalar subquery index max lookup.",
+        time: "1.0ms",
+        rows: [
+          { "passenger": "Pooja Hegde", "pnr": "PNR1000002", "train": 12951, "class": "3A", "fare": "₹ 1,520.00" }
+        ]
+      },
+      {
+        id: 19,
+        cat: "window",
+        number: "Q19",
+        title: "Stepwise Inter-Station Leg Distance (LAG)",
+        prompt: "Compute the exact incremental distance between consecutive route stops using the SQL LAG() window function.",
+        tables: "Train_Schedules",
+        sql: `SELECT train_no, station_code, stop_order, distance_from_origin_km,
+       (distance_from_origin_km - LAG(distance_from_origin_km, 1, 0) OVER (
+           PARTITION BY train_no 
+           ORDER BY stop_order
+       )) AS leg_distance_km, halt_minutes
+FROM Train_Schedules
+WHERE train_no = 12951
+ORDER BY stop_order;`,
+        plan: "Single pass window evaluation over uk_train_stop ordered stream.",
+        time: "0.9ms",
+        rows: [
+          { "train": 12951, "station": "NDLS", "stop": 1, "total_km": "0 km", "leg_km": "0 km (Origin)", "halt": "0 min" },
+          { "train": 12951, "station": "KOTA", "stop": 2, "total_km": "465 km", "leg_km": "465 km", "halt": "5 min" },
+          { "train": 12951, "station": "BRC", "stop": 3, "total_km": "992 km", "leg_km": "527 km", "halt": "8 min" },
+          { "train": 12951, "station": "BCT", "stop": 4, "total_km": "1,384 km", "leg_km": "392 km", "halt": "0 min" }
+        ]
+      },
+      {
+        id: 20,
+        cat: "window",
+        number: "Q20",
+        title: "High-Value Spenders Impacted by Cancellations",
+        prompt: "Find high-value customers (gross spend > ₹1,000) who experienced ticket cancellations for retention outreach.",
+        tables: "Users, Tickets",
+        sql: `SELECT u.user_id, u.full_name, u.email, SUM(t.total_fare) AS gross_spend
+FROM Users u
+JOIN Tickets t ON u.user_id = t.user_id
+WHERE u.user_id IN (
+    SELECT DISTINCT user_id 
+    FROM Tickets 
+    WHERE ticket_status = 'CANCELLED'
+)
+GROUP BY u.user_id, u.full_name, u.email
+HAVING gross_spend > 1000.00
+ORDER BY gross_spend DESC;`,
+        plan: "Subquery semi-join followed by user group aggregation.",
+        time: "1.8ms",
+        rows: [
+          { "user_id": "u-3312-b56", "name": "Pooja Hegde", "email": "pooja.h@rail.in", "gross_spend": "₹ 1,520.00" }
+        ]
+      }
+    ];
+
+    let currentCat = "all";
+
+    function setQueryCategory(cat) {
+      currentCat = cat;
+      ['all', 'filtering', 'joins', 'aggs', 'window'].forEach(c => {
+        const btn = document.getElementById(`qtab-${c}`);
+        if (c === cat) {
+          btn.className = "px-2.5 py-1 rounded bg-slate-900 text-white font-medium";
+        } else {
+          btn.className = "px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-normal";
+        }
+      });
+      renderQuestions();
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById('questionsListContainer');
+      container.innerHTML = '';
+
+      const filtered = QUESTIONS.filter(q => currentCat === 'all' || q.cat === currentCat);
+
+      filtered.forEach(q => {
+        const card = document.createElement('div');
+        card.className = "p-5 rounded border border-slate-200 bg-white";
+
+        const thHtml = Object.keys(q.rows[0] || {}).map(k => `<th class="py-1.5 px-2.5 text-left font-mono text-[11px] font-semibold text-slate-600 uppercase">${k}</th>`).join('');
+        const trHtml = q.rows.map(r => `
+          <tr class="border-b border-slate-100">
+            ${Object.values(r).map(v => `<td class="py-1.5 px-2.5 font-mono text-[11px] text-slate-800">${v}</td>`).join('')}
+          </tr>
+        `).join('');
+
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 mb-3 border-b border-slate-100 gap-1.5">
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${q.number}</span>
+              <h3 class="text-sm font-bold text-slate-900">${q.title}</h3>
+            </div>
+            <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600">${q.cat}</span>
+          </div>
+
+          <p class="text-xs text-slate-700 mb-3">${q.prompt}</p>
+
+          <div class="mb-3">
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+              <span>SQL Query:</span>
+              <button onclick="copySql(${q.id})" class="text-blue-600 hover:underline">Copy</button>
+            </div>
+            <pre class="bg-slate-900 text-slate-100 p-3 rounded text-xs font-mono overflow-x-auto leading-relaxed">${q.sql}</pre>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between text-[11px] text-slate-500 mb-3 bg-slate-50 p-2 rounded border border-slate-100">
+            <div><strong>Tables:</strong> ${q.tables}</div>
+            <div><strong>Plan:</strong> ${q.plan}</div>
+            <div><strong>Time:</strong> ${q.time}</div>
+          </div>
+
+          <div>
+            <div class="text-[11px] font-semibold text-slate-700 mb-1">Sample Execution Output:</div>
+            <div class="overflow-x-auto rounded border border-slate-200">
+              <table class="w-full text-left bg-white">
+                <thead class="bg-slate-50 border-b border-slate-200">${thHtml}</thead>
+                <tbody>${trHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function copySql(id) {
+      const q = QUESTIONS.find(x => x.id === id);
+      navigator.clipboard.writeText(q.sql);
+      alert(`SQL for ${q.number} copied!`);
+    }
+
+    // ==========================================
+    // 1-CLICK PPTX EXPORT ENGINE (PptxGenJS)
+    // ==========================================
+    function exportToPPTX() {
+      const btn = document.getElementById('exportPptBtn');
+      btn.innerText = "Generating PPTX...";
+
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9';
+
+        // SLIDE 1: TITLE SLIDE
+        const slide1 = pptx.addSlide();
+        slide1.background = { color: 'F8FAFC' };
+        slide1.addText("Railway Reservation System (RRS)", {
+          x: 0.8, y: 1.8, fontSize: 32, bold: true, color: '0F172A', fontFace: 'Arial'
+        });
+        slide1.addText("Enterprise Database Architecture & 20 Analytical SQL Suite", {
+          x: 0.8, y: 2.5, fontSize: 18, color: '2563EB', fontFace: 'Arial'
+        });
+        slide1.addText("Scale: 2.5M+ Bookings/Day | 350K Tatkal Sessions | <150ms P99 Latency | 3NF/BCNF", {
+          x: 0.8, y: 4.8, fontSize: 13, color: '64748B', fontFace: 'Arial'
+        });
+
+        // SLIDE 2: THE INTERMEDIATE SEGMENT DILEMMA
+        const slide2 = pptx.addSlide();
+        slide2.background = { color: 'FFFFFF' };
+        slide2.addText("The Intermediate Segment Dilemma & Bitmask Solution", {
+          x: 0.8, y: 0.6, fontSize: 22, bold: true, color: '0F172A'
+        });
+        slide2.addShape(pptx.ShapeType.rect, {
+          x: 0.8, y: 1.5, w: 6.8, h: 4.8, fill: { color: 'FEF2F2' }, line: { color: 'EF4444', width: 1 }
+        });
+        slide2.addText("Naive Static Reservation (Capacity Loss)", {
+          x: 1.0, y: 1.7, fontSize: 15, bold: true, color: '991B1B'
+        });
+        slide2.addText("• Model: Ticket(Train_ID, Seat_No, Date)\n• Booking NDLS -> KOTA locks seat for the entire journey.\n• Downstream travelers (KOTA -> BCT) rejected.\n• Result: Up to 65% artificial capacity loss.", {
+          x: 1.0, y: 2.3, w: 6.4, fontSize: 13, color: '450A0A', lineSpacing: 24
+        });
+
+        slide2.addShape(pptx.ShapeType.rect, {
+          x: 7.9, y: 1.5, w: 7.3, h: 4.8, fill: { color: 'ECFDF5' }, line: { color: '10B981', width: 1 }
+        });
+        slide2.addText("Segment Bitmask Engine (Optimal Yield)", {
+          x: 8.1, y: 1.7, fontSize: 15, bold: true, color: '065F46'
+        });
+        slide2.addText("• N halts = N - 1 sequential travel legs.\n• Seat occupancy tracked via atomic leg bitmask.\n• NDLS -> KOTA (Leg 1) = [1, 0, 0]\n• KOTA -> BCT (Legs 2&3) = [0, 1, 1]\n• Bitwise AND check: (1 0 0 & 0 1 1) == 0\n• Zero Conflict: Seat capacity increases to >96%!", {
+          x: 8.1, y: 2.3, w: 6.9, fontSize: 13, color: '064E3B', lineSpacing: 24
+        });
+
+        // SLIDE 3: SYSTEM ARCHITECTURE
+        const slide3 = pptx.addSlide();
+        slide3.background = { color: 'FFFFFF' };
+        slide3.addText("System Topology Architecture", {
+          x: 0.8, y: 0.6, fontSize: 22, bold: true, color: '0F172A'
+        });
+        const layers = [
+          { title: "Layer 1: Edge & Gateway", desc: "Cloudflare WAF rate limiting (5 req/sec/IP) + Envoy API Gateway JWT routing." },
+          { title: "Layer 2: In-Memory Cache", desc: "Redis 7.x cluster managing seat availability bitmasks & Redlock 8-min hold tokens." },
+          { title: "Layer 3: ACID DB Master", desc: "PostgreSQL Master partitioned monthly on journey_date with pessimistic row holds." },
+          { title: "Layer 4: Replicas & Kafka", desc: "Async Read Replicas serving queries Q1-Q20 + Kafka Event Bus for automated RAC promotion." }
+        ];
+        layers.forEach((l, idx) => {
+          const yPos = 1.5 + (idx * 1.25);
+          slide3.addShape(pptx.ShapeType.rect, {
+            x: 0.8, y: yPos, w: 14.4, h: 1.05, fill: { color: 'F8FAFC' }, line: { color: 'CBD5E1', width: 1 }
+          });
+          slide3.addText(l.title, { x: 1.1, y: yPos + 0.15, fontSize: 14, bold: true, color: '1E293B' });
+          slide3.addText(l.desc, { x: 1.1, y: yPos + 0.55, fontSize: 12, color: '64748B' });
+        });
+
+        // SLIDE 4: ENTITY-RELATIONSHIP CATALOG (12 ENTITIES)
+        const slide4 = pptx.addSlide();
+        slide4.background = { color: 'FFFFFF' };
+        slide4.addText("12 Core Relational Entities & Data Dictionary", {
+          x: 0.8, y: 0.6, fontSize: 22, bold: true, color: '0F172A'
+        });
+        const tableRows = [
+          [ { text: "Entity", options: { bold: true, fill: { color: 'E2E8F0' } } },
+            { text: "Primary Key", options: { bold: true, fill: { color: 'E2E8F0' } } },
+            { text: "Foreign Keys", options: { bold: true, fill: { color: 'E2E8F0' } } },
+            { text: "Domain Purpose", options: { bold: true, fill: { color: 'E2E8F0' } } } ],
+          ["Users", "user_id", "—", "Traveler profiles, credentials, Aadhaar KYC hash."],
+          ["Stations", "station_code", "—", "Junction codes, railway zones, platform counts."],
+          ["Trains", "train_no", "source_stn, dest_stn", "Master train registry, speed classes, run day masks."],
+          ["Train_Schedules", "schedule_id", "train_no, station_code", "Monotonic stop orders, arrival/departure, distances."],
+          ["Coaches", "coach_id", "train_no", "Rake composition (B1, A1, H1), class code, capacity."],
+          ["Berths", "berth_id", "coach_id", "Granular physical seats (1 to 72), layout types."],
+          ["Segment_Inventory", "inventory_id", "train_no, berth_id", "Station-leg availability ledger (AVAILABLE, LOCKED)."],
+          ["Tickets", "pnr_no, date", "user_id, train_no", "Booking master partitioned monthly on journey_date."],
+          ["Passengers", "passenger_id", "pnr_no, berth_id", "Individual travelers, age, gender, assigned status."],
+          ["Payments", "transaction_id", "pnr_no", "Payment settlement transactions, modes, and statuses."]
+        ];
+        slide4.addTable(tableRows, {
+          x: 0.8, y: 1.4, w: 14.4, fontSize: 10, border: { color: 'CBD5E1', pt: 1 }
+        });
+
+        // SLIDE 5: CONCURRENCY & TATKAL PROTOCOL
+        const slide5 = pptx.addSlide();
+        slide5.background = { color: 'FFFFFF' };
+        slide5.addText("Tatkal Concurrency & Two-Phase Locking Lifecycle", {
+          x: 0.8, y: 0.6, fontSize: 22, bold: true, color: '0F172A'
+        });
+        const steps = [
+          { s: "Step 1 (0ms - 5ms): Redis Redlock", d: "In-memory atomic key lock: SET lock:berth:12 token NX PX 480000. Rejects excess requests instantly." },
+          { s: "Step 2 (5ms - 25ms): ACID DB Hold", d: "Primary PostgreSQL issues SELECT ... FOR UPDATE on Segment_Inventory to set status = 'LOCKED' with 8-min TTL." },
+          { s: "Step 3 (30s - 120s): Payment Webhook", d: "User completes UPI/Card checkout. Gateway webhook transitions status to 'CONFIRMED' and generates PNR." },
+          { s: "Step 4 (8m Timeout): Auto-Reclaim", d: "If payment fails or times out, Redis TTL expires and an async reaper reverts status back to 'AVAILABLE'." }
+        ];
+        steps.forEach((st, idx) => {
+          const yPos = 1.4 + (idx * 1.3);
+          slide5.addShape(pptx.ShapeType.rect, {
+            x: 0.8, y: yPos, w: 14.4, h: 1.1, fill: { color: 'F1F5F9' }, line: { color: 'CBD5E1', width: 1 }
+          });
+          slide5.addText(st.s, { x: 1.1, y: yPos + 0.15, fontSize: 13, bold: true, color: '0F172A' });
+          slide5.addText(st.d, { x: 1.1, y: yPos + 0.55, fontSize: 11, color: '475569' });
+        });
+
+        // SLIDES 6 to 9: 20 SQL QUESTIONS (5 PER SLIDE)
+        const categories = [
+          { name: "Core Operational Filtering (Q01 – Q05)", items: QUESTIONS.slice(0, 5) },
+          { name: "Relational Multi-Table Joins (Q06 – Q10)", items: QUESTIONS.slice(5, 10) },
+          { name: "Aggregations & Yield Analytics (Q11 – Q15)", items: QUESTIONS.slice(10, 15) },
+          { name: "Window Functions & Subqueries (Q16 – Q20)", items: QUESTIONS.slice(15, 20) }
+        ];
+
+        categories.forEach(cat => {
+          const s = pptx.addSlide();
+          s.background = { color: 'FFFFFF' };
+          s.addText(cat.name, { x: 0.8, y: 0.6, fontSize: 20, bold: true, color: '0F172A' });
+
+          cat.items.forEach((q, idx) => {
+            const yPos = 1.3 + (idx * 1.05);
+            s.addShape(pptx.ShapeType.rect, {
+              x: 0.8, y: yPos, w: 14.4, h: 0.95, fill: { color: 'F8FAFC' }, line: { color: 'E2E8F0', width: 1 }
+            });
+            s.addText(`${q.number}: ${q.title}`, { x: 1.0, y: yPos + 0.12, fontSize: 12, bold: true, color: '1E293B' });
+            s.addText(q.prompt, { x: 1.0, y: yPos + 0.45, fontSize: 10.5, color: '64748B' });
+          });
+        });
+
+        // SAVE FILE
+        pptx.writeFile({ fileName: 'Railway_Reservation_System_Report.pptx' })
+          .then(() => {
+            btn.innerHTML = `
+              <svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              </svg>
+              <span>Downloaded PPTX!</span>
+            `;
+            setTimeout(() => {
+              btn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span>Export to PPT (.pptx)</span>
+              `;
+            }, 3000);
+          })
+          .catch(err => {
+            console.error(err);
+            alert("Error exporting PPTX: " + err.message);
+            btn.innerText = "Export to PPT (.pptx)";
+          });
+
+      } catch (err) {
+        console.error(err);
+        alert("Failed to initialize PPT generation: " + err.message);
+        btn.innerText = "Export to PPT (.pptx)";
+      }
+    }
+
+    // INITIAL RENDER
+    window.addEventListener('DOMContentLoaded', () => {
+      renderQuestions();
+    });
+  </script>
+</body>
+</html>
